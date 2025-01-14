@@ -11,12 +11,12 @@
             "request": "launch",
             "program": "${file}",
             "args":[
-                "--input_bag", "/root/datasets/Euroc_MAV/ros_bag/V1_01_easy.bag",
-                "-st","2014-06-25 16:56:00.00",
-                "-et","2014-06-25 16:56:10.00",
+                "--input_bag", "/root/datasets/Orchard_EMR_Jun_2024/SlowRun.bag",
+                "--output_path", "/root/datasets/Orchard_EMR_Jun_2024_save_bags",
+                "-st","2024-06-03 12:04:11.80",
+                "-et","2024-06-03 12:04:20.00",
                 "-v",
-                "-t" , "/cam0/image_raw /cam1/image_raw",
-                "-dt", "/vicon/firefly_sbx/firefly_sbx /imu0" 
+                "-dt", "/theta_cam/image_raw" 
             ],
             "console": "integratedTerminal"
         }
