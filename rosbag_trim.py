@@ -3,10 +3,10 @@ from datetime import datetime
 import argparse
 import os
 from fnmatch import fnmatchcase
+import rospy
 
 
-
-def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_time_str=None, end_time_str=None, save_topics='*', delete_topics=None):
+def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_time_str=None, end_time_str=None, save_topics=[], delete_topics=[]):
     """
     Trims a ROS bag file between a start and end time.
 
@@ -19,8 +19,6 @@ def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_tim
     - end_time_str (str): End time in human-readable format (YYYY-MM-DD HH:MM:SS.sss) (optional).
     """
 
-    nums_skipped_msg = 0
-    nums_saved_msg = 0
 
     # Convert human-readable times to ROS time (seconds since epoch)
     def to_ros_time(time_str):
@@ -33,29 +31,41 @@ def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_tim
     if end_time_str:
         end_time = to_ros_time(end_time_str)
 
+    
+
     # Check that time range is specified
     if start_time is None or end_time is None:
         raise ValueError("Either timestamps or human-readable times must be specified for start and end.")
 
+
+    final_save_topics  = []
+
     # Trim the bag
     with rosbag.Bag(output_bag, 'w') as outbag:
         with rosbag.Bag(input_bag, 'r') as inbag:
-            for topic, msg, t in inbag.read_messages():
-                if start_time <= t.to_sec() <= end_time:
-                    datetime_obj = datetime.fromtimestamp(t.to_sec())
-                    if any(fnmatchcase(topic, pattern) for pattern in save_topics) and not any(fnmatchcase(topic, pattern) for pattern in delete_topics) :
-                        nums_saved_msg+=1
-                        print(f"t:{datetime_obj}, saving {topic}, saved number = {nums_saved_msg}")
-                        outbag.write(topic, msg, t)
-                    else:
-                        nums_skipped_msg+=1
-                        print(f"t:{datetime_obj}, skipped {topic}, skipped number = {nums_skipped_msg}")
+            all_topics = list(inbag.get_type_and_topic_info()[1].keys())
+            
+            if len(save_topics) == 0 and len(delete_topics) == 0:
+                # save all the topics
+                final_save_topics = all_topics
+            else:
+                remain_topics = list(set(all_topics) - set(delete_topics))
 
+                for topic in save_topics:
+                    if topic not in remain_topics:
+                        raise Exception(f"error, topic:{topic} doesn't existed in reamin_topics:{remain_topics}")
+                    final_save_topics.append(topic)
+                if len(final_save_topics) == 0:
+                    final_save_topics = remain_topics
 
-                if t.to_sec() > end_time:
-                    break
+            for topic, msg, t in inbag.read_messages(start_time=rospy.Time.from_sec(start_time), end_time=rospy.Time.from_sec(end_time), topics=final_save_topics):
+                datetime_obj = datetime.fromtimestamp(t.to_sec())
+                print(f"t:{datetime_obj}, saving {topic}")
+                outbag.write(topic, msg, t)
 
-    print(f"Trimmed bag written to {output_bag}, time from {datetime.fromtimestamp(start_time)} to {datetime.fromtimestamp(end_time)},\n saved {nums_saved_msg} messages, and skipped {nums_skipped_msg} messages ")
+    
+        
+    print(f"Trimmed bag written to {output_bag}, time from {datetime.fromtimestamp(start_time)} to {datetime.fromtimestamp(end_time)}")
 
 
 
@@ -74,8 +84,8 @@ if __name__ == '__main__':
                         help='date time or timestamp')
     parser.add_argument('-v', '--verbose', action="store_true", default=False,
                         help='verbose output')
-    parser.add_argument('-t', '--save_topics', default="*",
-                        help='the topic you want to remain, * means all the topics, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
+    parser.add_argument('-t', '--save_topics', default="",
+                        help='the topic you want to remain, empty means all the topics, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
     parser.add_argument('-dt', '--delete_topics', default="",
                         help='the topic you dont want to remain, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
 
@@ -88,6 +98,11 @@ if __name__ == '__main__':
         delete_topics = []
     else:
         delete_topics = args.delete_topics.split(' ')
+
+    if args.save_topics == "":
+        save_topics = []
+    else:
+        save_topics = args.save_topics.split(' ')
 
     try:
         os.makedirs(args.output_path)

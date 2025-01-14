@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "args":[
+                "--input_bag", "/root/datasets/Euroc_MAV/ros_bag/V1_01_easy.bag",
+                "-st","2014-06-25 16:56:00.00",
+                "-et","2014-06-25 16:56:10.00",
+                "-v",
+                "-t" , "/cam0/image_raw /cam1/image_raw",
+                "-dt", "/vicon/firefly_sbx/firefly_sbx /imu0" 
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
