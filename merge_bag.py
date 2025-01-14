@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import argparse
 from fnmatch import fnmatchcase
 from datetime import datetime
@@ -38,7 +37,6 @@ def main():
 
     with Bag(args.outputbag, 'w') as o: 
         for ifile in args.inputbag:
-            matchedtopics = []
             included_count = 0
             skipped_count = 0
             if (args.verbose):
@@ -46,10 +44,6 @@ def main():
             with Bag(ifile, 'r') as ib:
                 for topic, msg, t in ib:
                     if any(fnmatchcase(topic, pattern) for pattern in topics) and not any(fnmatchcase(topic, pattern) for pattern in delete_topics) :
-                        if not topic in matchedtopics:
-                            matchedtopics.append(topic)
-                            if (args.verbose):
-                                print("Including matched topic '%s'" % topic)
                         if (args.verbose):
                             datetime_obj = datetime.fromtimestamp(t.to_sec())
                             print(f"t:{datetime_obj}, processing {topic}")

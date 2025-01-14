@@ -1,7 +1,12 @@
 import rosbag
 from datetime import datetime
+import argparse
+import os
+from fnmatch import fnmatchcase
 
-def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_time_str=None, end_time_str=None):
+
+
+def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_time_str=None, end_time_str=None, save_topics='*', delete_topics=None):
     """
     Trims a ROS bag file between a start and end time.
 
@@ -13,6 +18,9 @@ def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_tim
     - start_time_str (str): Start time in human-readable format (YYYY-MM-DD HH:MM:SS.sss) (optional).
     - end_time_str (str): End time in human-readable format (YYYY-MM-DD HH:MM:SS.sss) (optional).
     """
+
+    nums_skipped_msg = 0
+    nums_saved_msg = 0
 
     # Convert human-readable times to ROS time (seconds since epoch)
     def to_ros_time(time_str):
@@ -35,19 +43,59 @@ def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, start_tim
             for topic, msg, t in inbag.read_messages():
                 if start_time <= t.to_sec() <= end_time:
                     datetime_obj = datetime.fromtimestamp(t.to_sec())
-                    print(f"{i + 1}, processing {topic} data as to {output_bag_path}")
-                    outbag.write(topic, msg, t)
+                    if any(fnmatchcase(topic, pattern) for pattern in save_topics) and not any(fnmatchcase(topic, pattern) for pattern in delete_topics) :
+                        nums_saved_msg+=1
+                        print(f"t:{datetime_obj}, saving {topic}, saved number = {nums_saved_msg}")
+                        outbag.write(topic, msg, t)
+                    else:
+                        nums_skipped_msg+=1
+                        print(f"t:{datetime_obj}, skipped {topic}, skipped number = {nums_skipped_msg}")
+
 
                 if t.to_sec() > end_time:
                     break
 
-    print(f"Trimmed bag written to {output_bag}")
+    print(f"Trimmed bag written to {output_bag}, time from {datetime.fromtimestamp(start_time)} to {datetime.fromtimestamp(end_time)},\n saved {nums_saved_msg} messages, and skipped {nums_skipped_msg} messages ")
 
 
 
 if __name__ == '__main__':
 
     # How to use
+
+    parser = argparse.ArgumentParser(description='trim rosbag according to datetime or timestamp, and filter out the topics you dont want')
+    parser.add_argument('--output_path',
+                        help='output bag file with topics merged', default="save_bags")
+    parser.add_argument('--input_bag', required=True,
+                        help='input bag files')
+    parser.add_argument('-st', '--start_time', required=True,
+                        help='date time or timestamp')
+    parser.add_argument('-et', '--end_time', required=True,
+                        help='date time or timestamp')
+    parser.add_argument('-v', '--verbose', action="store_true", default=False,
+                        help='verbose output')
+    parser.add_argument('-t', '--save_topics', default="*",
+                        help='the topic you want to remain, * means all the topics, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
+    parser.add_argument('-dt', '--delete_topics', default="",
+                        help='the topic you dont want to remain, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
+
+
+    args = parser.parse_args()
+
+    save_topics = args.save_topics.split(' ')
+
+    if args.delete_topics == "":
+        delete_topics = []
+    else:
+        delete_topics = args.delete_topics.split(' ')
+
+    try:
+        os.makedirs(args.output_path)
+        print("Directory '%s' created successfully" % args.output_path)
+    except OSError as error:
+        print("Directory '%s' can not be created or has existed" % args.output_path)
+
+    output_bag = os.path.join(args.output_path, 'trim_'+args.input_bag.split('/')[-1])
 
     # Trim Using Human-Readable Time:
     # trim_rosbag(
@@ -66,8 +114,10 @@ if __name__ == '__main__':
     # )
 
     trim_rosbag(
-        input_bag="/mnt/d/zhipeng/datasets/Orchard_EMR_Jun_2024/SlowRun.bag",
-        output_bag="trimmed_SlowRun_from_12_01_to_12_02.bag",
-        start_time_str="2024-06-03 12:01:00.00",
-        end_time_str="2024-06-03 12:02:00.00"
+        input_bag=args.input_bag,
+        output_bag=output_bag,
+        start_time_str=args.start_time,
+        end_time_str=args.end_time,
+        save_topics=save_topics,
+        delete_topics=delete_topics
     )

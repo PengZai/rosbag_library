@@ -4,7 +4,7 @@ from datetime import datetime
 
 # Path to the original bag file
 input_bag_path = 'mergebag_SlowBag_ZED2_and_SlowRun.bag'
-bag
+
 
 # Number of parts to split the bag into
 num_parts = 10
