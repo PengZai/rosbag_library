@@ -4,19 +4,35 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
-            "name": "Python Debugger: Current File",
+            "name": "rosbag_merge",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "args":[
-                "--input_bag", "/root/datasets/Orchard_EMR_Jun_2024/SlowRun.bag",
-                "--output_path", "/root/datasets/Orchard_EMR_Jun_2024_save_bags",
-                "-st","2024-06-03 12:04:11.80",
-                "-et","2024-06-03 12:04:20.00",
+            "args": [
+                "--input_bag", "/mnt/usb/datasets/Orchard_EMR_Jun_2024/SlowRun.bag /mnt/usb/datasets/Orchard_EMR_Jun_2024/SlowBag_ZED2.bag",
+                "--output_path",
+                "/mnt/usb/datasets/Orchard_EMR_Jun_2024_save_bags",
+                "-et", "2024-06-03 12:05:00.00",
                 "-v",
-                "-dt", "/theta_cam/image_raw" 
+                "--delete_topics", "/theta_cam/image_raw"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "rosbag_trim",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "--input_bag",
+                "/mnt/usb/datasets/Orchard_EMR_Jun_2024/SlowBag_ZED2.bag",
+                "--output_path",
+                "/mnt/usb/datasets/Orchard_EMR_Jun_2024_save_bags",
+                "-et", "2024-06-03 12:05:00.00",
+                "-v",
+                "--delete_topics",
+                "/theta_cam/image_raw"
             ],
             "console": "integratedTerminal"
         }
