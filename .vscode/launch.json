@@ -11,8 +11,7 @@
             "program": "${file}",
             "args": [
                 "--input_bag", "/mnt/usb/datasets/Orchard_EMR_Jun_2024/SlowRun.bag /mnt/usb/datasets/Orchard_EMR_Jun_2024/SlowBag_ZED2.bag",
-                "--output_path",
-                "/mnt/usb/datasets/Orchard_EMR_Jun_2024_save_bags",
+                "--output_path", "/mnt/usb/datasets/Orchard_EMR_Jun_2024_save_bags",
                 "-et", "2024-06-03 12:05:00.00",
                 "-v",
                 "--delete_topics", "/theta_cam/image_raw"
@@ -26,10 +25,11 @@
             "program": "${file}",
             "args": [
                 "--input_bag",
-                "/mnt/usb/datasets/Orchard_EMR_Jun_2024/SlowBag_ZED2.bag",
+                "/mnt/usb/datasets/Orchard_EMR_Jun_2024_save_bags/from_20240603_120008_12_to_20240603_120459_99/merge_SlowRun_SlowBag_ZED2.bag",
                 "--output_path",
                 "/mnt/usb/datasets/Orchard_EMR_Jun_2024_save_bags",
-                "-et", "2024-06-03 12:05:00.00",
+                "-st", "2024-06-03 12:00:20.00",
+                "-et", "2024-06-03 12:16:00.00",
                 "-v",
                 "--delete_topics",
                 "/theta_cam/image_raw"

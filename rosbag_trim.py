@@ -5,7 +5,7 @@ import os
 import rospy
 
 
-def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, save_topics=[], delete_topics=[]):
+def trim_rosbag(args, input_bag, output_path, start_time=None, end_time=None, save_topics=[], delete_topics=[]):
     """
     Trims a ROS bag file between a start and end time.
 
@@ -37,9 +37,17 @@ def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, save_topi
     final_save_topics  = []
 
     # Trim the bag
-    with rosbag.Bag(output_bag, 'w') as outbag:
-        with rosbag.Bag(input_bag, 'r') as inbag:
-            all_topics = list(inbag.get_type_and_topic_info()[1].keys())
+    with rosbag.Bag(input_bag, 'r') as inbag:
+        all_topics = list(inbag.get_type_and_topic_info()[1].keys())
+        
+        # rosbag start time and rosbag end time
+        rst = datetime.fromtimestamp(inbag.get_start_time())
+        ret = datetime.fromtimestamp(inbag.get_end_time())
+        output_bag = os.path.join(args.output_path, 'trim_'+args.input_bag.split('/')[-1].split('.')[0]+f'_from_{rst.year}{rst.month}{rst.day}_{rst.hour}{rst.minute}{rst.second}_{rst.millisecond}_to_{ret.year}{ret.month}{ret.day}_{ret.hour}{ret.minute}{ret.second}_{ret.millisecond}.bag')
+        if os.path.isfile(output_bag):
+            raise Exception(f"error, output_bag {output_bag} have existed")
+
+        with rosbag.Bag(output_bag, 'w') as outbag:
             
             if len(save_topics) == 0 and len(delete_topics) == 0:
                 # save all the topics
@@ -54,12 +62,22 @@ def trim_rosbag(input_bag, output_bag, start_time=None, end_time=None, save_topi
                 if len(final_save_topics) == 0:
                     final_save_topics = remain_topics
 
-    
+            if args.save_tf_static == True:
+                final_save_topics.remove('/tf_static')
+                for topic, msg, t in inbag.read_messages(topics=['/tf_static']):
+                    datetime_obj = datetime.fromtimestamp(t.to_sec())
+                    print(f"t:{datetime_obj}, saving {topic}")
+                    outbag.write(topic, msg, ros_start_time)
+
+
             for topic, msg, t in inbag.read_messages(start_time=ros_start_time, end_time=ros_end_time, topics=final_save_topics):
+                if args.save_tf_static == True and topic == '/tf_static':
+                    continue
                 datetime_obj = datetime.fromtimestamp(t.to_sec())
                 print(f"t:{datetime_obj}, saving {topic}")
                 outbag.write(topic, msg, t)
 
+            
 
     print(f"Trimmed bag written to {output_bag}")
 
@@ -84,7 +102,8 @@ if __name__ == '__main__':
                         help='the topic you want to remain, empty means all the topics, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
     parser.add_argument('--delete_topics', default="",
                         help='the topic you dont want to remain, you should use space to seperate these input topics likes, topic1 topic2 topic3 ...')
-
+    parser.add_argument('-save_tf_static', type=bool, default=True,
+                        help='program will save tf')
 
     args = parser.parse_args()
 
@@ -107,11 +126,6 @@ if __name__ == '__main__':
     except OSError as error:
         print("Directory '%s' can not be created or has existed" % args.output_path)
 
-    output_bag = os.path.join(args.output_path, 'trim_'+args.input_bag.split('/')[-1])
-    if os.path.isfile(output_bag):
-        raise Exception(f"error, output_bag {output_bag} have existed")
-
-
 
     # Trim Using Human-Readable Time:
     # trim_rosbag(
@@ -123,8 +137,9 @@ if __name__ == '__main__':
 
 
     trim_rosbag(
+        args=args,
         input_bag=args.input_bag,
-        output_bag=output_bag,
+        output_path=args.output_path,
         start_time=args.start_time,
         end_time=args.end_time,
         save_topics=save_topics,
